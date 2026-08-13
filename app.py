@@ -20,7 +20,7 @@ CORS(app)
 # ==========================================
 
 df = pd.read_csv(
-    "../Trained dataset/career_dataset.csv"
+    "career_dataset.csv"
 )
 
 
