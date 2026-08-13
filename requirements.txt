@@ -1,8 +1,8 @@
-flask
-flask-cors
-pandas
+Flask
+gunicorn
 numpy
+pandas
 scikit-learn
 sentence-transformers
-hdbscan
 joblib
+hdbscan
