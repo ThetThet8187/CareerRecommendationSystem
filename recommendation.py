@@ -9,16 +9,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 # =====================================================
-# LOAD MODEL
+# LOAD MODEL FROM HUGGING FACE
 # =====================================================
-
-# sbert_model = SentenceTransformer(
-#     "models/sbert_model"
-# )
 
 sbert_model = SentenceTransformer(
     "thetthettun/career-sbert-model"
 )
+
+print("Model loaded successfully!")
+
+
+# =====================================================
+# LOAD DATA
+# =====================================================
 
 embeddings = np.load(
     "models/career_embeddings.npy"
@@ -31,7 +34,6 @@ career_df = pd.read_pickle(
 career_map = joblib.load(
     "models/career_mapping.pkl"
 )
-
 
 # =====================================================
 # HELPER
