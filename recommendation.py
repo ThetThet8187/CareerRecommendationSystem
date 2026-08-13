@@ -12,8 +12,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 # LOAD MODEL
 # =====================================================
 
+# sbert_model = SentenceTransformer(
+#     "models/sbert_model"
+# )
+
 sbert_model = SentenceTransformer(
-    "models/sbert_model"
+    "thetthettun/career-sbert-model"
 )
 
 embeddings = np.load(
