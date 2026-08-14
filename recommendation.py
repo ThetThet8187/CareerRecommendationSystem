@@ -22,7 +22,8 @@ tokenizer = AutoTokenizer.from_pretrained(
 )
 
 onnx_model = ORTModelForFeatureExtraction.from_pretrained(
-    MODEL_PATH
+    MODEL_PATH,
+    provider="CPUExecutionProvider"
 )
 
 print("ONNX model loaded successfully!")
@@ -33,7 +34,8 @@ print("ONNX model loaded successfully!")
 # =====================================================
 
 embeddings = np.load(
-    "models/career_embeddings.npy"
+    "models/career_embeddings.npy",
+    mmap_mode="r"
 )
 
 
@@ -53,7 +55,6 @@ career_df = pd.read_pickle(
 career_map = joblib.load(
     "models/career_mapping.pkl"
 )
-
 # =====================================================
 # ONNX SBERT ENCODING
 # =====================================================
