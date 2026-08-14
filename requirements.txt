@@ -7,7 +7,7 @@ hdbscan
 joblib
 
 transformers
-optimum
+optimum[onnxruntime]
 onnxruntime
 
 gunicorn
