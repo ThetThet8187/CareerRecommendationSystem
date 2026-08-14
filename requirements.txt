@@ -9,3 +9,5 @@ joblib
 transformers
 optimum
 onnxruntime
+
+gunicorn
