@@ -1,9 +1,11 @@
-Flask
-gunicorn
-flask_cors
-numpy
+flask
+flask-cors
 pandas
+numpy
 scikit-learn
-sentence-transformers
-joblib
 hdbscan
+joblib
+
+transformers
+optimum
+onnxruntime

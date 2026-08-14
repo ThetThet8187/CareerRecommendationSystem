@@ -4,36 +4,116 @@ import pandas as pd
 import math
 
 from collections import Counter
-from sentence_transformers import SentenceTransformer
+
+from transformers import AutoTokenizer
+from optimum.onnxruntime import ORTModelForFeatureExtraction
+
 from sklearn.metrics.pairwise import cosine_similarity
 
 
 # =====================================================
-# LOAD MODEL FROM HUGGING FACE
+# LOAD ONNX MODEL
 # =====================================================
 
-sbert_model = SentenceTransformer(
-    "thetthettun/career-sbert-model"
+MODEL_PATH = "thetthettun/career-sbert-onnx"
+
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_PATH
 )
 
-print("Model loaded successfully!")
+onnx_model = ORTModelForFeatureExtraction.from_pretrained(
+    MODEL_PATH
+)
+
+print("ONNX model loaded successfully!")
 
 
 # =====================================================
-# LOAD DATA
+# LOAD EMBEDDINGS
 # =====================================================
 
 embeddings = np.load(
     "models/career_embeddings.npy"
 )
 
+
+# =====================================================
+# LOAD CAREER DATA
+# =====================================================
+
 career_df = pd.read_pickle(
     "models/career_data.pkl"
 )
 
+
+# =====================================================
+# LOAD CAREER MAP
+# =====================================================
+
 career_map = joblib.load(
     "models/career_mapping.pkl"
 )
+
+# =====================================================
+# ONNX SBERT ENCODING
+# =====================================================
+
+def encode_text(text):
+
+    inputs = tokenizer(
+        text,
+        return_tensors="np",
+        padding=True,
+        truncation=True,
+        max_length=256
+    )
+
+    outputs = onnx_model(
+        **inputs
+    )
+
+    token_embeddings = outputs.last_hidden_state
+
+    attention_mask = inputs["attention_mask"]
+
+    mask = attention_mask[..., None]
+
+    masked_embeddings = (
+        token_embeddings * mask
+    )
+
+    summed = masked_embeddings.sum(
+        axis=1
+    )
+
+    counts = np.clip(
+        mask.sum(axis=1),
+        a_min=1e-9,
+        a_max=None
+    )
+
+    embeddings_output = (
+        summed / counts
+    )
+
+    # Normalize
+    norms = np.linalg.norm(
+        embeddings_output,
+        axis=1,
+        keepdims=True
+    )
+
+    embeddings_output = (
+        embeddings_output
+        /
+        np.clip(
+            norms,
+            a_min=1e-12,
+            a_max=None
+        )
+    )
+
+    return embeddings_output
 
 # =====================================================
 # HELPER
@@ -198,9 +278,7 @@ def recommend_career(
     # SBERT ENCODE
     # =================================================
 
-    vector = sbert_model.encode(
-        [text]
-    )
+    vector = encode_text(text)
 
 
     # =================================================

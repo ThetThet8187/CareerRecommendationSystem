@@ -1,38 +1,79 @@
 from flask import Flask, request, jsonify, render_template
-
 from flask_cors import CORS
 
 from recommendation import recommend_career
 
 import numpy as np
 import pandas as pd
+import os
 
 
+# =====================================================
+# APP
+# =====================================================
 
 app = Flask(__name__)
 
 CORS(app)
 
 
+# =====================================================
+# BASE DIRECTORY
+# =====================================================
 
-# ==========================================
-# LOAD DATASET
-# ==========================================
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
-df = pd.read_csv(
+
+# =====================================================
+# DATASET PATH
+# =====================================================
+
+DATASET_PATH = os.path.join(
+    BASE_DIR,
+    "..",
+    "Trained dataset",
     "career_dataset.csv"
 )
 
 
+# =====================================================
+# LOAD DATASET
+# =====================================================
+
+df = pd.read_csv(
+    DATASET_PATH
+)
+
+
+# =====================================================
+# CONVERT NUMPY
+# =====================================================
 
 def convert_numpy(obj):
 
-    if isinstance(obj, np.float32):
+    if isinstance(
+        obj,
+        (
+            np.float16,
+            np.float32,
+            np.float64
+        )
+    ):
 
         return float(obj)
 
 
-    if isinstance(obj, np.int64):
+    if isinstance(
+        obj,
+        (
+            np.int8,
+            np.int16,
+            np.int32,
+            np.int64
+        )
+    ):
 
         return int(obj)
 
@@ -51,7 +92,7 @@ def convert_numpy(obj):
 
             key: convert_numpy(value)
 
-            for key,value in obj.items()
+            for key, value in obj.items()
 
         }
 
@@ -59,19 +100,24 @@ def convert_numpy(obj):
     return obj
 
 
-
+# =====================================================
+# GET UNIQUE VALUES
+# =====================================================
 
 def get_unique_values(column_name):
 
     values = set()
 
 
-    for item in df[column_name].dropna():
+    for item in df[
+        column_name
+    ].dropna():
 
         item = str(item)
 
 
-        # remove list symbols
+        # Remove list symbols
+
         item = (
             item
             .replace("[", "")
@@ -81,8 +127,12 @@ def get_unique_values(column_name):
         )
 
 
-        # support comma and semicolon
-        item = item.replace(";", ",")
+        # Support comma and semicolon
+
+        item = item.replace(
+            ";",
+            ","
+        )
 
 
         parts = item.split(",")
@@ -90,24 +140,26 @@ def get_unique_values(column_name):
 
         for value in parts:
 
-
             value = value.strip()
 
 
             if value:
 
-
                 value = value.lower()
 
                 value = value.title()
 
-
                 values.add(value)
 
 
+    return sorted(
+        list(values)
+    )
 
-    return sorted(list(values))
 
+# =====================================================
+# LOAD SKILLS / INTERESTS
+# =====================================================
 
 ALL_SKILLS = get_unique_values(
     "Skills"
@@ -119,14 +171,9 @@ ALL_INTERESTS = get_unique_values(
 )
 
 
-
-
-
-
-# ==========================================
+# =====================================================
 # HOME
-# ==========================================
-
+# =====================================================
 
 @app.route("/")
 def home():
@@ -142,15 +189,9 @@ def home():
     )
 
 
-
-
-
-
-
-# ==========================================
+# =====================================================
 # RECOMMEND API
-# ==========================================
-
+# =====================================================
 
 @app.route(
     "/recommend",
@@ -159,105 +200,184 @@ def home():
 
 def recommend():
 
-
-    data=request.json
-
-
-
-    age=data.get(
-        "age",
-        0
+    data = request.get_json(
+        silent=True
     )
 
+
+    if not data:
+
+        return jsonify({
+
+            "success": False,
+
+            "message":
+            "Invalid request data"
+
+        }), 400
+
+
+    # =================================================
+    # AGE
+    # =================================================
+
+    try:
+
+        age = int(
+            data.get(
+                "age",
+                0
+            )
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        age = 0
 
 
     if age < 18 or age > 60:
 
-
         return jsonify({
 
-            "success":False,
+            "success": False,
 
             "message":
             "Age must be between 18 and 60"
 
-        }),400
+        }), 400
 
 
+    # =================================================
+    # INPUT
+    # =================================================
 
-
-
-
-    education=data.get(
-
+    education = data.get(
         "education",
-
         ""
-
     )
 
 
-
-    skills=data.get(
-
+    skills = data.get(
         "skills",
-
         []
-
     )
 
 
-
-    interests=data.get(
-
+    interests = data.get(
         "interests",
-
         []
-
     )
 
 
+    # =================================================
+    # SAFETY
+    # =================================================
 
-
-    result=recommend_career(
-
-        education,
-
+    if not isinstance(
         skills,
+        list
+    ):
 
-        interests
-
-    )
-
-
+        skills = []
 
 
+    if not isinstance(
+        interests,
+        list
+    ):
+
+        interests = []
+
+
+    # =================================================
+    # RECOMMEND
+    # =================================================
+
+    try:
+
+        result = recommend_career(
+
+            education,
+
+            skills,
+
+            interests
+
+        )
+
+
+    except Exception as e:
+
+        print(
+            "Recommendation error:",
+            str(e)
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "message":
+            "Recommendation failed"
+
+        }), 500
+
+
+    # =================================================
+    # RESPONSE
+    # =================================================
 
     return jsonify({
 
-        "success":True,
+        "success": True,
 
         "recommendations":
-
-            convert_numpy(result)
+        convert_numpy(result)
 
     })
 
 
+# =====================================================
+# HEALTH CHECK
+# =====================================================
+
+@app.route(
+    "/health",
+    methods=["GET"]
+)
+
+def health():
+
+    return jsonify({
+
+        "status": "ok"
+
+    })
 
 
+# =====================================================
+# RUN
+# =====================================================
 
+if __name__ == "__main__":
 
-
-if __name__=="__main__":
+    port = int(
+        os.environ.get(
+            "PORT",
+            5000
+        )
+    )
 
 
     app.run(
 
         host="0.0.0.0",
 
-        port=5000,
+        port=port,
 
-        debug=True
+        debug=False
 
     )
