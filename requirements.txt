@@ -1,13 +1,7 @@
-flask
-flask-cors
-pandas
+streamlit
 numpy
+pandas
+joblib
+sentence-transformers
 scikit-learn
 hdbscan
-joblib
-
-transformers
-optimum[onnxruntime]
-onnxruntime
-
-gunicorn
